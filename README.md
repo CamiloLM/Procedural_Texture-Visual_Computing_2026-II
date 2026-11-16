@@ -2,7 +2,6 @@
 
 Modelo de reacción-difusión de Turing (Gray-Scott) en p5.js, usado como textura en vivo sobre un jaguar 3D con iluminación Phong. El patrón crece directamente sobre la piel del modelo y se puede personalizar con botones y sliders.
 
-<!-- TODO: capturar con el botón Screenshot y guardar en docs/screenshots/jaguar.png (o un GIF con Record GIF) -->
 | |
 |---|
 | ![Jaguar con textura de reacción-difusión](docs/screenshots/jaguar.png) |
@@ -46,29 +45,32 @@ Hace falta un servidor HTTP porque `loadModel`, `loadImage` y `loadShader` no fu
 
 ## Controles
 
-Los controles están en un panel de [lil-gui](https://lil-gui.georgealways.com/) a la derecha, agrupados en carpetas (`Pattern`, `Palette`, `Simulation`, `Mapping`, `Phong`, `View`, `Export`). Encima del panel está la vista previa de la textura.
+Los controles están en un panel de [lil-gui](https://lil-gui.georgealways.com/) a la derecha, agrupados en carpetas (`Pattern`, `Palette`, `Simulation`, `Mapping`, `Phong`, `View`, `Export`). Encima del panel está la vista previa de la textura. Las carpetas `Pattern` y `Phong` muestran la ecuación que controlan sus sliders, con los símbolos ajustables resaltados; el nombre de cada slider termina con su símbolo.
 
 | Control | Acción |
 |---|---|
 | Arrastrar sobre el jaguar | Rotar la cámara |
 | Rueda del ratón | Acercar / alejar |
-| Arrastrar sobre la vista previa de la textura | Pintar químico B (agrega manchas en ese punto del cuerpo) |
+| Arrastrar sobre la vista previa de la textura | Pintar químico B: siembra manchas en ese punto del cuerpo |
 | `Jaguar` · `Leopard` · `Stripes` · `Coral` | Patrón: cambia *f* y *k* y reinicia la simulación |
-| `Jaguar` · `Panther` · `Snow Leopard` · `Tiger` · `Original` | Paleta de colores. `Original` muestra la textura original del modelo, para comparar |
+| `Jaguar` · `Panther` · `Snow Leopard` · `Tiger` · `Original` | Paleta de colores. Cada una activa o desactiva `Use original body coloring` según le convenga. `Original` muestra la textura original del modelo, para comparar |
 | `Use original body coloring` | Pone las manchas sobre los colores originales del modelo (vientre crema, lomo dorado, nariz rosada) |
-| `Spot mask` | Atenúa las manchas en las zonas claras (vientre y cara) |
-| `f` · `k` · `dA` · `dB` | Parámetros del modelo Gray-Scott |
+| `Spot mask` | Encoge las manchas en las zonas claras (vientre, patas y cara) hasta dejarlas como puntos negros, y las quita de la nariz |
+| `Feed rate (f)` · `Kill rate (k)` | Parámetros del modelo Gray-Scott: qué tan rápido se repone A y qué tan rápido se elimina B |
+| `Diffusion A (dA)` · `Diffusion B (dB)` | Qué tan rápido se difunde cada químico |
 | `Steps/frame` | Iteraciones de la simulación por cuadro |
-| `Brush size` | Tamaño del pincel de la vista previa |
-| `Reseed` + modo (`Random spots`, `Center blob`, `Noise`) | Reinicia la simulación con una nueva semilla |
+| `Brush size` | Radio del pincel de la vista previa, en celdas: las manchas se siembran al azar dentro de él |
+| `Seed mode` (`Random spots`, `Center blob`, `Noise`) + `Reseed` | Reinicia la simulación con una nueva semilla del tipo elegido |
 | `Pause` / `Play` | Congela o reanuda la simulación |
-| `Spot scale` | Repite la textura sobre el modelo (manchas más pequeñas) |
+| `Spot scale` | Cuántas veces se repite el patrón sobre el modelo: más alto, manchas más pequeñas; por debajo de 1, más grandes |
 | `Smooth normals` | Normales suavizadas o facetadas |
-| `Ka` · `Kd` · `Ks` · `Shininess` | Coeficientes de Phong |
-| `Light color` | Color de la luz |
+| `Ambient (Ka)` · `Diffuse (Kd)` · `Specular (Ks)` | Coeficientes de Phong: luz ambiental, difusa y especular |
+| `Shininess (n)` | Exponente del brillo: más alto, brillo más pequeño y concentrado |
+| `Light color (Lc)` | Color de la luz |
 | `Light orbit` | La luz gira alrededor del jaguar |
 | `Auto-rotate` | El jaguar gira solo |
-| `Screenshot` · `Save texture` · `Record GIF` | Exportar el lienzo (PNG), la textura (PNG) o un GIF de 5 s |
+| `Reset view` | Devuelve la cámara a su posición inicial |
+| `Screenshot` · `Save texture` · `Record GIF` | Exportar el lienzo (PNG), la textura (PNG de 1024×1024) o un GIF de 5 s (480 px de ancho, 20 fps) |
 
 ## Teoría
 
@@ -126,7 +128,13 @@ Cambiando solo *f* y *k* aparecen patrones muy distintos:
 - Dos grillas de 256×256 (`Float32Array`) para A y B, con doble buffer: se lee de una y se escribe en la otra, y se intercambian en cada paso.
 - Los bordes **dan la vuelta** (topología de toro), así que la textura es periódica y se puede repetir sin costuras.
 - Se corren varios pasos por cuadro (`Steps/frame`, 10 por defecto) y el patrón evoluciona en vivo sobre el modelo.
-- Semilla: A = 1 en toda la grilla y B = 1 en pequeños cuadrados al azar.
+- A y B se mantienen entre 0 y 1. Con Δ*t* = 1, una semilla dura (B = 1) se pasaría de esos límites y la simulación divergiría.
+- Semilla: A = 1 en toda la grilla y B = 1 en pequeños cuadrados al azar (`Random spots`), en un grupo en el centro (`Center blob`) o en bloques de ruido (`Noise`).
+- El lazo interno no reserva memoria y lee solo tres celdas nuevas por químico en cada paso: al avanzar por una fila reutiliza las sumas de las dos columnas anteriores.
+
+### Pincel
+
+En los patrones de manchas (`Jaguar`, `Leopard`) solo sobreviven manchas aisladas: una zona grande de B, o varias manchas muy juntas, agotan el químico A y se apagan. Por eso el pincel no pinta un trazo sólido. Siembra manchas ya formadas (B alto y A bajo en el centro, con borde suave) en puntos al azar dentro de su radio, y deja al menos 16 celdas entre una y otra. Cada mancha sembrada crece y se divide como las demás.
 
 ### Color: rosetas de jaguar
 
@@ -136,11 +144,19 @@ Con $t = \mathrm{clamp}(A - B)$, cada paleta asigna a *t* un color de mancha con
 - *t* medio (borde de la mancha): negro.
 - *t* bajo (centro, donde B es máximo): naranja oscuro.
 
-El resultado es un anillo negro con centro naranja: la roseta del jaguar. Ese color se compone sobre un color sólido o, con `Use original body coloring`, sobre la textura original del modelo.
+El resultado es un anillo negro con centro naranja: la roseta del jaguar. Ese color se compone sobre el color del cuerpo, que es un color sólido de la paleta o, con `Use original body coloring`, la coloración original del modelo.
+
+**Coloración original sin manchas.** La textura original ya trae sus manchas pintadas, así que al cargar se le quitan: los píxeles negros y los marrones de las rosetas se rellenan desde sus bordes con el color de los vecinos y luego se suavizan. Queda solo la coloración del cuerpo (lomo dorado, vientre crema, nariz rosada), y sobre ella van las manchas de la simulación.
+
+**Máscara de manchas.** De esa coloración sale también `Spot mask`: en las zonas poco saturadas (vientre, patas, cara) se le suma un valor a *t* antes de consultar la tabla. Eso encoge las manchas hasta dejar solo su núcleo, que cae en la franja negra de la paleta. El resultado son puntos negros sólidos, como en un jaguar real, que tiene rosetas en el lomo y puntos en el vientre y las patas.
+
+**La tabla se consulta dos veces.** En la CPU ([`palettes.js`](palettes.js)) para la vista previa y para `Save texture`, y por píxel en el fragment shader para el modelo. En el shader la GPU interpola *t* entre téxeles **antes** de consultar la paleta, así que el borde de cada mancha queda nítido aunque la textura de 256×256 se vea muy ampliada. El shader recibe por separado el campo *t*, la paleta, la coloración del cuerpo y la máscara.
 
 ### Mapeo UV
 
-El modelo tiene **un solo despliegue UV, como una piel extendida**: el lomo cruza el centro de la textura y la cabeza, las patas y la cola salen hacia los lados. Por eso el patrón, que crece en espacio UV, fluye continuo por todo el cuerpo, y las costuras solo aparecen donde se cortó la piel (vientre y patas). `Spot scale` multiplica las UV, y como la textura es periódica, repetirla no crea costuras.
+El modelo tiene las UV **en espejo**: las mitades izquierda y derecha del cuerpo comparten el mismo despliegue, que es media piel extendida (la cabeza arriba a la izquierda, el lomo en diagonal, las patas hacia los lados), con la cola y algunas piezas pequeñas en islas aparte. Por eso el patrón, que crece en espacio UV, fluye continuo de la cabeza a las patas y sale simétrico a ambos lados, como en un animal real.
+
+`Spot scale` multiplica las UV con las que se lee el campo de la simulación. Como el campo es periódico, repetirlo no crea costuras. La coloración del cuerpo y la máscara se leen con las UV sin escalar, porque pertenecen al cuerpo y no al patrón.
 
 ### Normales suavizadas
 
@@ -156,9 +172,9 @@ $$I = K_a \, C + K_d \, \max(N \cdot L, 0) \, C \, L_c + K_s \, \max(R \cdot V, 
 |---|---|
 | Ambiental ($K_a$) | Luz base, para que las sombras no queden negras |
 | Difusa ($K_d$) | Depende del ángulo entre la normal y la luz; da el volumen |
-| Especular ($K_s$, $n$ = `Shininess`) | El brillo que se mueve con la luz; $n$ alto da un brillo más pequeño y concentrado |
+| Especular ($K_s$, $n$ = `Shininess (n)`) | El brillo que se mueve con la luz; $n$ alto da un brillo más pequeño y concentrado |
 
-$C$ es el color de la textura de reacción-difusión y $L_c$ el color de la luz. La posición de la luz está en espacio de mundo y el shader la pasa a espacio de cámara con `uViewMatrix`, así que la luz se queda quieta cuando se rota la cámara.
+$C$ es el color de la textura de reacción-difusión (`skinColor`, la consulta de la paleta descrita arriba) y $L_c$ el color de la luz. La posición de la luz está en espacio de mundo y el shader la pasa a espacio de cámara con `uViewMatrix`, así que la luz se queda quieta cuando se rota la cámara.
 
 ```glsl
 vec3 N = normalize(vNormal);
@@ -166,7 +182,7 @@ vec3 L = normalize(lightPosEye - vPosition);
 vec3 V = normalize(-vPosition);
 vec3 R = reflect(-L, N);
 
-vec3 tex      = texture(uTexture, vTexCoord).rgb;
+vec3 tex      = skinColor(vTexCoord);
 vec3 ambient  = uKa * tex;
 vec3 diffuse  = uKd * max(dot(N, L), 0.0) * tex * uLightColor;
 vec3 specular = uKs * pow(max(dot(R, V), 0.0), uShininess) * uLightColor;
@@ -176,7 +192,6 @@ fragColor = vec4(ambient + diffuse + specular, 1.0);
 
 ## Galería
 
-<!-- TODO: capturar cada combinación con Screenshot y guardarla en docs/screenshots/ -->
 | Antes (`Original`) | Después (`Jaguar`) |
 |---|---|
 | ![Textura original](docs/screenshots/original.png) | ![Textura de reacción-difusión](docs/screenshots/jaguar.png) |

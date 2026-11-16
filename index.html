@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reaction-diffusion jaguar</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="loading">
+  <main>
+    <p id="loading">Loading…</p>
+  </main>
+
+  <aside id="panel">
+    <h1>Reaction-diffusion jaguar</h1>
+    <div id="preview"></div>
+    <p class="hint">Texture · drag to paint spots<span id="stats"></span></p>
+    <div id="gui"></div>
+  </aside>
+
+  <footer>
+    Jaguar by Poly by Google [CC-BY 3.0] (<a href="https://creativecommons.org/licenses/by/3.0/">https://creativecommons.org/licenses/by/3.0/</a>) via Poly Pizza (<a href="https://poly.pizza/m/4fb-oMr2uUF">https://poly.pizza/m/4fb-oMr2uUF</a>)
+  </footer>
+
+  <!-- Order matters: p5, then lil-gui, then the project scripts. -->
+  <script src="assets/libs/p5.js"></script>
+  <script src="assets/libs/lil-gui.umd.min.js"></script>
+  <script src="reactionDiffusion.js"></script>
+  <script src="palettes.js"></script>
+  <script src="jaguar.js"></script>
+  <script src="gui.js"></script>
+  <script src="sketch.js"></script>
+</body>
+</html>

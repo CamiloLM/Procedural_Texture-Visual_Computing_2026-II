@@ -8,6 +8,9 @@ sketch.properties
 # Tooling
 node_modules/
 
+# Personal Claude Code settings (machine-specific permission rules)
+.claude/
+
 # OS / editor
 .DS_Store
 Thumbs.db

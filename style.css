@@ -1,0 +1,211 @@
+/* Two columns: the canvas on the left, the control panel on the right, and
+   the model credit along the bottom. */
+
+:root {
+  --background: #181a20;
+  --panel: #1f2229;
+  --border: #2e323c;
+  --text: #e6e6e6;
+  --muted: #9aa0ac;
+  --accent: #e0a03e;
+  --panel-width: 300px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--panel-width);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "main panel"
+    "footer panel";
+  background: var(--background);
+  color: var(--text);
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+}
+
+/* --- Canvas --- */
+
+main {
+  grid-area: main;
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The canvas always fills its column, also while a GIF is being recorded at
+   a lower resolution. */
+main canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  cursor: grab;
+}
+
+main canvas:active {
+  cursor: grabbing;
+}
+
+#loading {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center;
+  margin: 0;
+  color: var(--muted);
+  background: var(--background);
+}
+
+body.loading #loading {
+  display: grid;
+}
+
+/* --- Panel --- */
+
+#panel {
+  grid-area: panel;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+/* The panel scrolls: don't let its children shrink to fit instead. */
+#panel > * {
+  flex-shrink: 0;
+}
+
+#panel h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+#preview {
+  aspect-ratio: 1;
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none; /* so dragging paints instead of scrolling */
+}
+
+.hint {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* lil-gui fills the panel instead of floating over the page. */
+#gui .lil-gui {
+  --width: 100%;
+  --background-color: var(--panel);
+  --title-background-color: #16181d;
+  --widget-color: #333844;
+  --hover-color: #414756;
+  --focus-color: #4d5466;
+  --number-color: var(--accent);
+  --name-width: 42%;
+}
+
+/* An equation inside a folder, above the sliders that control it. */
+#gui .equation {
+  margin: 4px var(--padding) 6px;
+  padding: 6px 8px;
+  background: #16181d;
+  border-left: 2px solid var(--accent);
+  border-radius: 2px;
+}
+
+#gui .equation pre {
+  margin: 0;
+  font: 11px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+/* The symbols that a slider controls. */
+#gui .equation b {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+#gui .equation sup {
+  font-size: 9px;
+  line-height: 0;
+}
+
+#gui .equation p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* The preset in use. */
+#gui .lil-gui .preset.active button {
+  background: var(--accent);
+  color: #16181d;
+  font-weight: 600;
+}
+
+/* --- Footer --- */
+
+footer {
+  grid-area: footer;
+  padding: 6px 12px;
+  color: var(--muted);
+  font-size: 11px;
+  border-top: 1px solid var(--border);
+}
+
+footer a {
+  color: inherit;
+}
+
+/* --- Narrow screens: the panel goes below the canvas --- */
+
+@media (max-width: 620px) {
+  body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 55vh auto auto;
+    grid-template-areas:
+      "main"
+      "panel"
+      "footer";
+    overflow: auto;
+    height: auto;
+  }
+
+  #panel {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    overflow-y: visible;
+  }
+
+  #preview {
+    max-width: 320px;
+  }
+}
